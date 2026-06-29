@@ -8,7 +8,7 @@ from google.adk import Agent
 # Define the Tutor Agent
 tutor_agent = Agent(
     name="tutor_agent",
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     instruction=(
         "You are an encouraging, beginner-friendly Tutor Agent. "
         "Transform the Research Agent's notes into an educational explanation (400-700 words) for students. "
