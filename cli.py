@@ -14,6 +14,8 @@ from orchestrator import orchestrator_workflow
 from memory import session_memory
 from security import security_check
 
+from tutor import tutor_agent
+
 # Load environment variables (such as GEMINI_API_KEY) from .env file
 load_dotenv()
 
@@ -37,6 +39,8 @@ async def main():
 
     # Initialize the InMemoryRunner with our orchestrator workflow
     runner = InMemoryRunner(agent=orchestrator_workflow, app_name="infoquant")
+    # Initialize a separate runner for the Tutor Agent to run Quiz Mode directly
+    tutor_runner = InMemoryRunner(agent=tutor_agent, app_name="infoquant_tutor")
     session_id = "infoquant_active_session"
     current_topic = None
 
@@ -81,17 +85,25 @@ async def main():
 
         # If it's a quiz request, formulate a detailed prompt to instruct the Tutor Agent
         if is_quiz_request:
-            if not current_topic and not session_memory.get_topics():
-                print("\n[Warning] No topics have been discussed yet. Let's learn a topic first!")
+            active_topic = session_memory.current_topic
+            last_explanation = session_memory.last_tutor_response
+            
+            if not active_topic:
+                print("\n[Warning] No active learning topic found. Let's learn a topic first!")
                 continue
             
-            topic_to_quiz = current_topic or session_memory.get_topics()[-1]
             query = (
-                f"Please generate a 5-question multiple-choice quiz about {topic_to_quiz} "
-                "based on the session context. Make it beginner-friendly. For each question, "
-                "provide 4 options (A, B, C, D), mark the correct answer, and provide a short explanation."
+                f"You are now in Quiz Mode.\n"
+                f"Generate a 5-question multiple-choice quiz about the active topic '{active_topic}' based on this explanation:\n\n"
+                f"{last_explanation}\n\n"
+                "Requirements:\n"
+                "- 5 multiple-choice questions\n"
+                "- 4 options per question (A, B, C, D)\n"
+                "- Mark the correct answer clearly\n"
+                "- Provide a short explanation for the correct answer\n"
+                "Keep it beginner-friendly."
             )
-            print(f"\n[Info] Generating quiz on '{topic_to_quiz}' using session memory...")
+            print(f"\n[Info] Generating quiz on '{active_topic}' using session memory...")
         else:
             # It's a normal topic or follow-up question
             current_topic = user_input
@@ -101,8 +113,14 @@ async def main():
         print("[Info] Running agents... (this may take a few moments)\n")
 
         try:
-            # Run the workflow with the same session_id to maintain conversation context
-            result = await runner.run_debug(query, session_id=session_id, quiet=True)
+            if is_quiz_request:
+                # Call the Tutor Agent runner directly (bypassing Research Agent)
+                turn_session_id = f"infoquant_quiz_{len(session_memory.history) + 1}"
+                result = await tutor_runner.run_debug(query, session_id=turn_session_id, quiet=True)
+            else:
+                # Run the workflow for explaining topics
+                turn_session_id = f"infoquant_session_{len(session_memory.history) + 1}"
+                result = await runner.run_debug(query, session_id=turn_session_id, quiet=True)
             
             # Extract only the final text response from the event list
             tutor_response = ""
@@ -131,15 +149,21 @@ async def main():
                 try:
                     quiz_prompt = input("\nWould you like to take a 5-question quiz on this topic? (y/n): ").strip().lower()
                     if quiz_prompt in ["y", "yes"]:
-                        # Trigger quiz generation in the next loop iteration by prepending/faking input
-                        # We run it inline here for a smoother user experience
                         print(f"\n[Info] Generating quiz on '{current_topic}'...")
                         quiz_query = (
-                            f"Please generate a 5-question multiple-choice quiz about {current_topic} "
-                            "based on the session context. Make it beginner-friendly. For each question, "
-                            "provide 4 options (A, B, C, D), mark the correct answer, and provide a short explanation."
+                            f"You are now in Quiz Mode.\n"
+                            f"Generate a 5-question multiple-choice quiz about the active topic '{current_topic}' based on this explanation:\n\n"
+                            f"{tutor_response}\n\n"
+                            "Requirements:\n"
+                            "- 5 multiple-choice questions\n"
+                            "- 4 options per question (A, B, C, D)\n"
+                            "- Mark the correct answer clearly\n"
+                            "- Provide a short explanation for the correct answer\n"
+                            "Keep it beginner-friendly."
                         )
-                        quiz_result = await runner.run_debug(quiz_query, session_id=session_id, quiet=True)
+                        quiz_session_id = f"infoquant_quiz_{len(session_memory.history) + 1}"
+                        # Call the Tutor Agent runner directly (bypassing Research Agent)
+                        quiz_result = await tutor_runner.run_debug(quiz_query, session_id=quiz_session_id, quiet=True)
                         quiz_response = ""
                         for event in quiz_result:
                             if event.is_final_response() and event.content and event.content.parts:

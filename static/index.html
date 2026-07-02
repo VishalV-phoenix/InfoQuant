@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfoQuant AI - Learning Assistant</title>
+    <!-- Google Fonts Outfit & Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar containing session history -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fa-solid fa-graduation-cap"></i> InfoQuant AI</h2>
+                <span class="badge">Day 5</span>
+            </div>
+            
+            <div class="history-section">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Session History</h3>
+                <div id="history-list" class="history-list">
+                    <p class="empty-text">No topics discussed yet.</p>
+                </div>
+            </div>
+
+            <button id="clear-btn" class="secondary-btn">
+                <i class="fa-solid fa-trash-can"></i> Clear Session
+            </button>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-info">
+                    <h1>AI Student Learning Assistant</h1>
+                    <p>Enter any technical topic to receive a simplified overview, key concepts, and real-world analogy!</p>
+                </div>
+                <div class="mcp-status">
+                    <span class="status-dot green"></span>
+                    <span>MCP Server Online</span>
+                </div>
+            </header>
+
+            <!-- Conversation Display -->
+            <div id="chat-container" class="chat-container">
+                <div class="welcome-card">
+                    <div class="icon-wrapper">
+                        <i class="fa-solid fa-brain-circuit"></i>
+                    </div>
+                    <h2>Start Learning Today</h2>
+                    <p>Ask a question or enter a topic (e.g. <code>Google Cloud Storage</code>, <code>Vertex AI</code>, <code>BigQuery</code>) to see the multi-agent workflow compile student-friendly explanations, or test yourself with a custom quiz!</p>
+                </div>
+            </div>
+
+            <!-- Toast Notification Container -->
+            <div id="toast-container" class="toast-container"></div>
+
+            <!-- Input Bar -->
+            <footer class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="topic-input" placeholder="What would you like to learn today? (e.g. Google Cloud Storage)" autocomplete="off">
+                    <button id="explain-btn" class="primary-btn">
+                        <i class="fa-solid fa-lightbulb"></i> Explain
+                    </button>
+                    <button id="quiz-btn" class="accent-btn" disabled>
+                        <i class="fa-solid fa-gamepad"></i> Generate Quiz
+                    </button>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Alert Box for Security Checks -->
+    <div id="alert-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Security Guardrail Alert</h3>
+                <button onclick="closeModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="alert-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="primary-btn">Acknowledge</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

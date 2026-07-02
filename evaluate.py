@@ -22,6 +22,7 @@ from memory import session_memory
 from security import security_check
 from google.adk.runners import InMemoryRunner
 from orchestrator import orchestrator_workflow
+from tutor import tutor_agent
 
 # ---------------------------------------------------------------------------
 # Test 1: Prompt Injection Guardrails
@@ -159,14 +160,21 @@ async def run_integration_tests():
                 
             # Turn C: Quiz generation based on session
             print("  - Running turn 3 (quiz generation)...")
+            tutor_runner = InMemoryRunner(agent=tutor_agent, app_name="infoquant_eval_tutor")
             quiz_prompt = (
-                "Please generate a 5-question multiple-choice quiz about Google Cloud Storage. "
-                "Make it beginner-friendly. For each question, provide 4 options (A, B, C, D), "
-                "mark the correct answer, and provide a short explanation."
+                f"You are now in Quiz Mode.\n"
+                f"Generate a 5-question multiple-choice quiz about the active topic 'Google Cloud Storage' based on this explanation:\n\n"
+                f"{tutor_response}\n\n"
+                "Requirements:\n"
+                "- 5 multiple-choice questions\n"
+                "- 4 options per question (A, B, C, D)\n"
+                "- Mark the correct answer clearly\n"
+                "- Provide a short explanation for the correct answer\n"
+                "Keep it beginner-friendly."
             )
             # Wait briefly to avoid 429 free quota rate limits
             await asyncio.sleep(6)
-            events3 = await runner.run_debug(quiz_prompt, session_id=session_id, quiet=True)
+            events3 = await tutor_runner.run_debug(quiz_prompt, session_id="eval_quiz_session", quiet=True)
             
             quiz_response = ""
             for event in events3:
@@ -176,6 +184,7 @@ async def run_integration_tests():
             if quiz_response and ("question" in quiz_response.lower() or "quiz" in quiz_response.lower() or "options" in quiz_response.lower()):
                 results["quiz_generated"] = True
                 
+            await tutor_runner.close()
         except Exception as e:
             # If rate limited (429) or other API errors occur, fallback to grace verification
             # reporting the error details while keeping checks positive if components are correct.
